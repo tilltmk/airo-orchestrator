@@ -3,147 +3,37 @@ import json
 import os
 import sys
 import traceback
+import ollama
 
 url = "http://localhost:11343/api/generate"
 
-
 def generate_answers(agent, prompt):
-    header_projektplaner = {
-        "Content-Type": "application/json"
-    }
-
-    data_projektplaner = {
-        "model": "stablelm2:1.6b-zephyr-fp16",
-        "prompt": prompt,
-        "stream": False
-    }
-
-    header_coder = {
-        "Content-Type": "application/json"
-    }
-
-    data_coder = {
-        "model": "codellama:7b",
-        "prompt": prompt,
-        "stream": False
-    }
-
     if agent == 'projektplaner':
-        headers = header_projektplaner
-        data = data_projektplaner
-        response = requests.post(url, headers=headers, data=json.dumps(data))
-        return response
-    
-    if agent == 'coder':
-        headers = header_coder
-        data = data_coder
-        response = requests.post(url, headers=headers, data=json.dumps(data))
-        return response
+        model_name = 'stablelm2:1.6b-zephyr-fp16'
+    elif agent == 'coder':
+        model_name = 'codellama:7b'
+    else:
+        raise ValueError("Unknown Agent.")
 
-def servicedesk(input):
-    response = generate_answers("projektplaner", f"Stelle sinnvolle Fragen für das folgende Projekt, sodass daraus ein sehr detaillierter Projektplan erstellt werden kann: {input}")
-    return response
+    # Create a message with the user's role and the passed prompt.
+    messages = [
+        {
+            'role': 'user',
+            'content': prompt,
+        },
+    ]
 
-def servicedesk2(beantwortete_fragen):
-
-    volles_projekt = generate_answers(f"Erstelle einen ")
-
-def projektplaner(proj):
-    projekt = f"Erstelle einen detaillierten Projektplan für das folgende Projekt: {proj}"
-    response = generate_answers("projektplaner", projekt)
-    manager(response)
-    
-def manager(projektplan):
-    """
-    manager nimmt projektplan, generiert anfrage um aufgaben für coder instanzen zu unterteilen, welche dann code snippets generieren und ruft dann auf basis der anzahl der aufgaben coderinstanzen auf (response wird gesplittet in aufgaben (markdown format), aufgaben = liste, )
-    """
-    prompt = f"Unterteile das folgende Projekt in einzelne Aufgaben. sobald die auflistung der Aufgaben beginnt, signalisiere dies mit einem --- . aufgabenauflistungen sollen im markdown erfolgen. hier der projektplan: {projektplan}"
-    aufgaben_response = generate_answers("projektplaner", prompt)
-    aufgaben = aufgaben_response['text'].split('---')[1].strip().split('\n')  # Annahme, dass die Aufgabenliste nach '---' kommt
-    # Für jede Aufgabe eine Coder-Instanz aufrufen (hier exemplarisch)
-    for aufgabe in aufgaben:
-        coderinstance(aufgabe)
-
-def generate_file_structure(aufgaben_liste):
-    """
-    Erstellt Ordner und Dateien basierend auf einer Liste von Aufgaben.
-    Diese Funktion ist ein Platzhalter und muss entsprechend der Projektanforderungen implementiert werden.
-    """
-    # Beispielstruktur: Ein Ordner pro Aufgabe
-    for aufgabe in aufgaben_liste:
-        ordner_name = aufgabe.replace(" ", "_").lower()  # Ersetze Leerzeichen durch Unterstriche und klein
-        os.makedirs(ordner_name, exist_ok=True)  # Erstelle Ordner, wenn noch nicht vorhanden
-        # Hier könntest du eine initiale Datei oder eine README hinzufügen
-        with open(f"{ordner_name}/README.md", 'w') as f:
-            f.write(f"Projekt: {aufgabe}\n")
-
-def coderinstance(aufgabe):
-    """
-    Generiert Code basierend auf einer spezifischen Aufgabe, entfernt das erste Wort und schreibt den Code in eine Datei.
-    """
-    code_response = generate_answers("coder", aufgabe)
-    code_text = code_response['text']
-    sprache, *code = code_text.split('```', 1)  # Trenne die Programmiersprache vom Code
-    code = ''.join(code)  # Füge den Code ohne die Programmiersprache wieder zusammen
-    
-    # Dateiname basierend auf der Aufgabe erstellen
-    dateiname = aufgabe.replace(" ", "_").lower() + ".txt"  # Beispiel: nutze .txt als Dateiendung, anpassbar
-    
-    with open(dateiname, 'w') as file:
-        file.write(code)
-    
-    return code
-
-def testing(code, test_cases):
-    """
-    Testet den generierten Code mithilfe eines Debuggers. Korrigiert den Code automatisch bei Fehlern und wiederholt den Prozess,
-    bis der Code erfolgreich ausgeführt werden kann.
-    
-    :param code: Der zu testende Code als String.
-    :return: Ein Tuple mit dem Status des Codes (True für Erfolg, False für Fehler) und dem getesteten oder korrigierten Code.
-    """
-    corrected_code = code
-    success = False
-
-    while not success:
-        temp_stdout = sys.stdout  # Temporäre Speicherung der Standardausgabe
-        sys.stdout = open('debug_log.txt', 'w')  # Umleitung der Ausgabe in eine Datei
-        try:
-            exec(corrected_code)  # Versuch, den Code auszuführen
-            sys.stdout.close()
-            sys.stdout = temp_stdout  # Stelle die ursprüngliche Standardausgabe wieder her
-            success = True  # Keine Fehler, Test erfolgreich
-        except Exception as e:
-            sys.stdout.close()
-            sys.stdout = temp_stdout  # Stelle die ursprüngliche Standardausgabe wieder her
-            error_message = ''.join(traceback.format_exception(None, e, e.__traceback__))  # Fehlermeldung
-            corrected_code = korrektur(corrected_code + "\n# Fehler: " + error_message)  # Versuche, den Code zu korrigieren
-
-    return (True, corrected_code)  # Gib den korrigierten Code zurück
+    # Send the message to the model and get the response.
+    try:
+        response = ollama.chat(model=model_name, messages=messages)
+        return response['message']['content']
+    except Exception as e:
+        print(f"There was an error communicating with the Ollama model: {e}")
+        return None
 
 
-def korrektur(code):
-    korrektur_prompt = f"Bitte korrigiere den folgenden Code: {code}"
-    korrektur_response = generate_answers("coder", korrektur_prompt)
-    return korrektur_response.json()['text']
-
-def dokumentation(code):
-    dokumentation_prompt = f"Erstelle eine Dokumentation für den folgenden Code in Form einer Github ReadMe: {code}"
-    dokumentation_response = generate_answers("coder", dokumentation_prompt)
-    return dokumentation_response.json()['text']
-
-
-
-import requests
-import json
-import os
-import sys
-import traceback
-
-url = "http://localhost:11343/api/generate"
-
-
-def generate_answers(agent, prompt):
+# ancient:
+# def generate_answers(agent, prompt):
     header_project_planner = {
         "Content-Type": "application/json"
     }
