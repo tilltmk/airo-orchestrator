@@ -33,6 +33,9 @@ import os
 import sys
 import traceback
 import ollama
+import html5lib
+import dotenv
+import subprocess
 
 # Functions like `generate_answers`, `servicedesk`, and `coderinstance` facilitate the interaction with Ollama models,
 # manage project planning, code generation, and automatic correction of generated code.
@@ -40,4 +43,4 @@ import ollama
 
 install requirements via pip:
 ```pip
-pip install ollama requests
+pip install ollama requests html5lib dotenv
