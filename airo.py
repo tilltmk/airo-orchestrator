@@ -8,7 +8,7 @@ import ollama
 url = "http://localhost:11343/api/generate"
 
 def generate_answers(agent, prompt):
-    if agent == 'projektplaner':
+    if agent == 'project_planner':
         model_name = 'stablelm2:1.6b-zephyr-fp16'
     elif agent == 'coder':
         model_name = 'codellama:7b'
@@ -71,8 +71,8 @@ def service_desk(input):
     return response
 
 def service_desk2(answered_questions):
-
-    complete_project = generate_answers(f"Create a ")
+    complete_project = generate_answers(f"Create a detailled project plan for the following: {answered_questions}")
+    complete_project
 
 def project_planner(proj):
     project = f"Create a detailed project plan for the following project: {proj}"
@@ -159,11 +159,22 @@ def documentation(code):
     return documentation_response.json()['text']
 
 
-if __name__ == '__main__':
-  project_description = input("Please provide detailed input for your project: ")
-  service_desk(project_description)
-  specified_project_description = input("Answers to questions: ")
-  service_desk2()
-  complete_project = f"Create detailed steps and a complete guide for the following project: "
 
+if __name__ == '__main__':
+    project_description = input("Please provide detailed input for your project: ")
+    response = service_desk(project_description)
+    print(response)
+    specified_project_description = ""
+    while True:
+        new_specified_description = input("Please provide or update your answers to questions: ")
+        specified_project_description += " " + new_specified_description  # Update with additional details
+        response2 = service_desk2(specified_project_description)
+        print(response2)
+        agreement = input("Are you good with this? (y/n): ")
+        if agreement.lower() == 'y':
+            break
+        else:
+            print("Please provide further details.")
+    complete_project = f"Create detailed steps and a complete guide for the following project: {project_description} ; {specified_project_description} ; {response2}"
+    
 
