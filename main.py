@@ -6,6 +6,7 @@ import traceback
 import ollama
 import dotenv
 import subprocess
+import html5lib
 
 dotenv.load_dotenv()  # Load environment variables
 PROJECT_PLANNER_MODEL = os.getenv("PROJECT_PLANNER_MODEL", "stablelm2:1.6b-zephyr-fp16")
@@ -81,7 +82,7 @@ def generate_file_structure(task_list):
     """
     # Example structure: One folder per task
     for task in task_list:
-        folder_name = task.replace(" ", "_").lower()  # Replace spaces with underscores and lowercase
+        folder_name = ''.join(c for c in task if c.isalnum() or c.isspace()).replace(" ", "_").lower()  # Remove invalid characters and replace spaces with underscores
         os.makedirs(folder_name, exist_ok=True)  # Create folder if not exists
         # Here you could add an initial file or a README
         with open(f"{folder_name}/README.md", 'w') as f:
@@ -96,38 +97,90 @@ def coder_instance(task):
     language, *code = code_text.split('```', 1)  # Separate programming language from code
     code = ''.join(code)  # Rejoin the code without the programming language
    
+    # Determine file extension based on programming language
+    file_extension = {
+        'python': '.py',
+        'javascript': '.js',
+        'html': '.html',
+        'css': '.css',
+        # Add more language-extension mappings as needed
+    }.get(language.strip().lower(), '.txt')  # Default to .txt if language is not recognized
+   
     # Create filename based on the function of the code
-    filename = task.replace(" ", "_").lower() + "_function.txt"  # Example: use .txt as file extension, customizable
+    filename = task.replace(" ", "_").lower() + "_function" + file_extension
    
     with open(filename, 'w') as file:
         file.write(code)
    
     return code
 
-def testing(code, test_cases):
+def testing(code, test_cases, language):
     """
-    Tests the generated code using a debugger. Automatically corrects the code if errors occur and repeats the process
-    until the code can be successfully executed.
+    Tests the generated code using appropriate tools based on the programming language.
+    Automatically corrects the code if errors occur and repeats the process until the code can be successfully executed.
    
     :param code: The code to be tested as a string.
+    :param test_cases: Test cases specific to the programming language.
+    :param language: The programming language of the code.
     :return: A tuple with the status of the code (True for success, False for failure) and the tested or corrected code.
     """
     corrected_code = code
     success = False
-    while not success:
-        temp_stdout = sys.stdout  # Temporarily store the standard output
-        sys.stdout = open('debug_log.txt', 'w')  # Redirect output to a file
-        try:
-            exec(corrected_code)  # Attempt to execute the code
-            sys.stdout.close()
-            sys.stdout = temp_stdout  # Restore the original standard output
-            success = True  # No errors, test successful
-        except Exception as e:
-            sys.stdout.close()
-            sys.stdout = temp_stdout  # Restore the original standard output
-            error_message = ''.join(traceback.format_exception(None, e, e.__traceback__))  # Error message
-            corrected_code = correction(corrected_code + "\n# Error: " + error_message)  # Attempt to correct the code
-    return (True, corrected_code)  # Return the corrected code
+    
+    if language == 'python':
+        while not success:
+            temp_stdout = sys.stdout  # Temporarily store the standard output
+            sys.stdout = open('debug_log.txt', 'w')  # Redirect output to a file
+            try:
+                exec(corrected_code)  # Attempt to execute the code
+                sys.stdout.close()
+                sys.stdout = temp_stdout  # Restore the original standard output
+                success = True  # No errors, test successful
+            except Exception as e:
+                sys.stdout.close()
+                sys.stdout = temp_stdout  # Restore the original standard output
+                error_message = ''.join(traceback.format_exception(None, e, e.__traceback__))  # Error message
+                corrected_code = correction(corrected_code + "\n# Error: " + error_message)  # Attempt to correct the code
+    
+    elif language == 'javascript':
+        # Save the code to a temporary file
+        with open('temp.js', 'w') as file:
+            file.write(corrected_code)
+        
+        while not success:
+            try:
+                # Run the JavaScript code using Node.js
+                subprocess.check_output(['node', 'temp.js'], stderr=subprocess.STDOUT)
+                success = True  # No errors, test successful
+            except subprocess.CalledProcessError as e:
+                error_message = e.output.decode('utf-8')  # Error message
+                corrected_code = correction(corrected_code + "\n// Error: " + error_message)  # Attempt to correct the code
+        
+        # Remove the temporary file
+        os.remove('temp.js')
+    
+    elif language == 'html':
+        # Save the code to a temporary file
+        with open('temp.html', 'w') as file:
+            file.write(corrected_code)
+        
+        # Validate HTML using a library like html5lib or BeautifulSoup
+        # You can install html5lib using: pip install html5lib
+        import html5lib
+        with open('temp.html', 'r') as file:
+            html = file.read()
+            parser = html5lib.HTMLParser(strict=True)            
+            try:
+                parser.parse(html)
+                success = True  # No errors, HTML is valid
+            except Exception as e:
+                error_message = str(e)  # Error message
+                corrected_code = correction(corrected_code + "\n<!-- Error: " + error_message + " -->")  # Attempt to correct the code
+        
+        # Remove the temporary file
+        os.remove('temp.html')
+    
+    return (success, corrected_code)  # Return the status and corrected code
 
 def correction(code):
     correction_prompt = f"Please correct the following code: {code}"
@@ -151,7 +204,6 @@ def documentation(code_snippets):
    
     with open('README.md', 'w') as file:
         file.write(documentation_content)
-
 
 def install_dependencies():
     """
@@ -229,7 +281,6 @@ def install_dependencies():
                                     print(f"Failed to install package: {package}")
     
     print("Dependency installation completed.")
-
 
 if __name__ == '__main__':
     project_description = input("Please provide detailed input for your project: ")
