@@ -34,37 +34,37 @@ def generate_answers(agent, prompt):
 
 # ancient:
 # def generate_answers(agent, prompt):
-    header_project_planner = {
-        "Content-Type": "application/json"
-    }
+    # header_project_planner = {
+    #     "Content-Type": "application/json"
+    # }
 
-    data_project_planner = {
-        "model": "stablelm2:1.6b-zephyr-fp16",
-        "prompt": prompt,
-        "stream": False
-    }
+    # data_project_planner = {
+    #     "model": "stablelm2:1.6b-zephyr-fp16",
+    #     "prompt": prompt,
+    #     "stream": False
+    # }
 
-    header_coder = {
-        "Content-Type": "application/json"
-    }
+    # header_coder = {
+    #     "Content-Type": "application/json"
+    # }
 
-    data_coder = {
-        "model": "codellama:7b",
-        "prompt": prompt,
-        "stream": False
-    }
+    # data_coder = {
+    #     "model": "codellama:7b",
+    #     "prompt": prompt,
+    #     "stream": False
+    # }
 
-    if agent == 'project_planner':
-        headers = header_project_planner
-        data = data_project_planner
-        response = requests.post(url, headers=headers, data=json.dumps(data))
-        return response
+    # if agent == 'project_planner':
+    #     headers = header_project_planner
+    #     data = data_project_planner
+    #     response = requests.post(url, headers=headers, data=json.dumps(data))
+    #     return response
     
-    if agent == 'coder':
-        headers = header_coder
-        data = data_coder
-        response = requests.post(url, headers=headers, data=json.dumps(data))
-        return response
+    # if agent == 'coder':
+    #     headers = header_coder
+    #     data = data_coder
+    #     response = requests.post(url, headers=headers, data=json.dumps(data))
+    #     return response
 
 def service_desk(input):
     response = generate_answers("project_planner", f"Pose meaningful questions for the following project, enabling a very detailed project plan to be created: {input}")
