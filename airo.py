@@ -71,7 +71,7 @@ def service_desk(input):
     return response
 
 def service_desk2(answered_questions):
-    complete_project = generate_answers(f"Create a detailled project plan for the following: {answered_questions}")
+    complete_project = generate_answers("project_planner", f"Create a detailled project plan for the following: {answered_questions}")
     complete_project
 
 def project_planner(proj):
