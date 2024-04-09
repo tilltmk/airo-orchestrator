@@ -1,5 +1,5 @@
 # airo
-Pre-Alpha Staged Personal Project for a simple Full-Stack AI-Developer in Python
+Fully in Develoopment atm - Pre-Alpha Staged Personal Project for a simple Full-Stack AI-Developer in Python
 ---
 
 # AIRO (Automated Idea Realization with Ollama)
