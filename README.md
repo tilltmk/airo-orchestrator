@@ -32,6 +32,12 @@ import json
 import os
 import sys
 import traceback
+import ollama
 
 # Functions like `generate_answers`, `servicedesk`, and `coderinstance` facilitate the interaction with Ollama models,
 # manage project planning, code generation, and automatic correction of generated code.
+```
+
+install requirements via pip:
+```pip
+pip install ollama requests
