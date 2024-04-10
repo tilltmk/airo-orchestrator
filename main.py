@@ -89,7 +89,7 @@ def manager(project_plan):
         else:
             if "1." in tasks_response:
                 tasks_section = tasks_response.split("1.")[1].strip()
-                tasks = [f'{i+1}. ' + task for i, task in enumerate(tasks_section.split(f'\n{i+2}. ')) if task.strip()]
+                tasks = [f'{i+1}. ' + task for i, task in enumerate(tasks_section.split(f'\n{i}. ')) if task.strip()]
             else:
                 print("Error: Expected markers not found in the response.")
         
@@ -193,7 +193,6 @@ def coder_instance(task):
         print(f"No code generated for task: {task}")
         language, code = 'Unknown', ''
         pass
-  
 
 def testing(code, test_cases, language):
     """
@@ -366,8 +365,8 @@ def install_dependencies():
 
 if __name__ == '__main__':
     project_description = input("Please provide detailed input for your project: ")
-    # response = service_desk(project_description)
-    # print(response)
+    response = service_desk(project_description)
+    print(response)
     specified_project_description = ""
     while True:
         new_specified_description = input("Please provide or update your answers to questions: ")
