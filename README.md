@@ -1,8 +1,5 @@
-###### serves as a proof-of-concept for the simplicity of creating a full-stack dev by having ollama installed / access to ollama-models
----
-# airo
-Fully in Develoopment atm - Pre-Alpha Staged Personal Project for a simple Full-Stack AI-Developer in Python
----
+> [!IMPORTANT]  
+> ###### serves as a proof-of-concept for the simplicity of creating a full-stack dev by having ollama installed / access to ollama-models
 
 # AIRO (Automated Idea Realization with Ollama)
 
